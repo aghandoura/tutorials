@@ -4,9 +4,10 @@
 #include <iostream>
 
 #include "logger.hpp"
+#include "perf_timer.hpp"
 
 const int  MAX= 1000;
-const char N=48;
+const char N=40;
 
 
 template <long N>
@@ -44,13 +45,20 @@ long long fib(long n)
 int main(int argc, const char *argv[])
 {
     int n = N;
+    Perf_timer timer;
+
     LOG("starting...");
     //static_assert(12586269025==fib(50), "correct answer");
     print_as_warning<cfib(N)>()();
     LOG_WARN("start computing");
+    timer.start();
     LOG(" val at runtime(optimized): ", fib(n) );
+    timer.stop();
+    LOG("took=>", timer.get_nseconds(),  "ns");
+    timer.start();
     LOG(" val at runtime(non optimized): ", cfib(n) );
-//    LOG(" val at runtime(non optimized * 2): ", cfib(n * 2) );
+    timer.stop();
+    LOG("took=> ", timer.get_mseconds(),  "ms" );
     LOG_WARN("done computing");
 
     LOG_ERR("done");
