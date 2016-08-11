@@ -2,8 +2,8 @@
 
 #include "log.hpp"
 
-//static logging::logger< logging::file_log_policy > log_inst( "execution.log");
-static logging::logger< logging::console_log_policy > log_inst("");
+//static logging::Logger< logging::File_log_policy > log_inst( "execution.log");
+static logging::Logger< logging::Console_log_policy > log_inst("");
 #ifdef LOGGING_LEVEL_1
 
 #define LOG      log_inst.print < logging::severity_type::debug >

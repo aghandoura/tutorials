@@ -14,7 +14,7 @@
 namespace logging
 {
 
-class log_policy_interface
+class Log_policy_interface
 {
 public:
     virtual void open_ostream( const std::string& name) = 0;
@@ -22,29 +22,29 @@ public:
     virtual void write(const std::string& msg) = 0;
 };
 
-class file_log_policy : public log_policy_interface
+class File_log_policy : public Log_policy_interface
 {
 public:
-    file_log_policy()
+    File_log_policy()
         :out_stream( new std::ofstream ) {}
     void open_ostream (const std::string& name) override;
     void close_ostream() override;
     void write(const std::string& msg) override;
-    virtual ~file_log_policy();
+    virtual ~File_log_policy();
 
 private:
     std::ofstream  *out_stream;
 };
 
-class console_log_policy : public log_policy_interface
+class Console_log_policy : public Log_policy_interface
 {
 public:
-    console_log_policy(){}
+    Console_log_policy(){}
     void open_ostream (const std::string& name) override {};
     void open_ostream () {}
     void close_ostream() {}
     void write(const std::string& msg) override;
-    virtual ~console_log_policy(){}
+    virtual ~Console_log_policy(){}
 };
 
 enum class severity_type : char
@@ -55,7 +55,7 @@ enum class severity_type : char
 };
 
 template < typename log_policy >
-class logger
+class Logger
 {
 private:
     unsigned          log_line_number;
@@ -73,31 +73,31 @@ public:
         void print( Args...args );
 
 
-    logger()
+    Logger()
     {
         log_line_number = 0;
         policy = new log_policy;
 
         if (!policy)
         {
-            throw(std::runtime_error("Logger: unable to create logger instance"));
+            throw(std::runtime_error("Logger: unable to create Logger instance"));
         }
         policy->open_ostream( );
     }
 
-    logger( const std::string& name)
+    Logger( const std::string& name)
     {
         log_line_number = 0;
         policy = new log_policy;
 
         if (!policy)
         {
-            throw(std::runtime_error("Logger: unable to create logger instance"));
+            throw(std::runtime_error("Logger: unable to create Logger instance"));
         }
         policy->open_ostream( name );
     }
 
-    ~logger()
+    ~Logger()
     {
         if (policy)
         {
@@ -109,7 +109,7 @@ public:
 
 template< typename log_policy>
     template< severity_type severity, typename...Args >
-void logger< log_policy >::print( Args...args )
+void Logger< log_policy >::print( Args...args )
 {
     std::lock_guard<std::mutex> lock(write_mutex);
     switch ( severity )
@@ -128,7 +128,7 @@ void logger< log_policy >::print( Args...args )
 }
 
 template <typename log_policy>
-void logger< log_policy >::print_impl()
+void Logger< log_policy >::print_impl()
 {
     policy->write( get_logline_header() + log_stream.str());
     log_stream.str("");
@@ -136,7 +136,7 @@ void logger< log_policy >::print_impl()
 
 template < typename log_policy>
   template<typename First, typename...Rest >
-void logger< log_policy >::print_impl(First parm1, Rest...parm)
+void Logger< log_policy >::print_impl(First parm1, Rest...parm)
 {
     log_stream<<parm1;
     print_impl(parm...);
@@ -144,7 +144,7 @@ void logger< log_policy >::print_impl(First parm1, Rest...parm)
 
 
 template < typename log_policy >
-std::string logger < log_policy >::get_time()
+std::string Logger < log_policy >::get_time()
 {
     time_t raw_time;
     std::string time_str;
@@ -156,7 +156,7 @@ std::string logger < log_policy >::get_time()
 }
 
 template < typename log_policy >
-std::string logger < log_policy >::get_logline_header()
+std::string Logger < log_policy >::get_logline_header()
 {
     std::stringstream header;
     header.str("");
