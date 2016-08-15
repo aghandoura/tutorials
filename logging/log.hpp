@@ -2,7 +2,6 @@
 
 #include <string>
 #include <fstream>
-#include <memory>
 #include <sstream>
 #include <mutex>
 #include <string>
@@ -10,6 +9,47 @@
 #include <string>
 #include <fstream>
 #include <memory>
+
+
+// make_unique added for gcc 4.9.0
+// Test for GCC < 4.9.0
+#if GCC_VERSION < 40900
+
+#include <cstddef>
+#include <type_traits>
+#include <utility>
+
+namespace std {
+    template<class T> struct _Unique_if {
+            typedef unique_ptr<T> _Single_object;
+        };
+
+    template<class T> struct _Unique_if<T[]> {
+            typedef unique_ptr<T[]> _Unknown_bound;
+        };
+
+    template<class T, size_t N> struct _Unique_if<T[N]> {
+            typedef void _Known_bound;
+        };
+
+    template<class T, class... Args>
+        typename _Unique_if<T>::_Single_object
+        make_unique(Args&&... args) {
+                    return unique_ptr<T>(new T(std::forward<Args>(args)...));
+                }
+
+    template<class T>
+        typename _Unique_if<T>::_Unknown_bound
+        make_unique(size_t n) {
+                    typedef typename remove_extent<T>::type U;
+                    return unique_ptr<T>(new U[n]());
+                }
+
+    template<class T, class... Args>
+        typename _Unique_if<T>::_Known_bound
+        make_unique(Args&&...) = delete;
+}
+#endif
 
 namespace logging
 {
@@ -26,14 +66,16 @@ class File_log_policy : public Log_policy_interface
 {
 public:
     File_log_policy()
-        :out_stream( new std::ofstream ) {}
+    {
+        m_pout_stream = std::make_unique<std::ofstream>();
+    }
     void open_ostream (const std::string& name) override;
     void close_ostream() override;
     void write(const std::string& msg) override;
     virtual ~File_log_policy();
 
 private:
-    std::ofstream  *out_stream;
+    std::unique_ptr<std::ofstream>  m_pout_stream;
 };
 
 class Console_log_policy : public Log_policy_interface
@@ -58,12 +100,12 @@ template < typename log_policy >
 class Logger
 {
 private:
-    unsigned          log_line_number;
-    std::string       get_time();
-    std::string       get_logline_header();
-    std::stringstream log_stream;
-    std::mutex        write_mutex;
-    log_policy       *policy;
+    unsigned                    m_log_line_number;
+    std::string                 get_time();
+    std::string                 get_logline_header();
+    std::stringstream           m_log_stream;
+    std::mutex                  m_write_mutex;
+    std::unique_ptr<log_policy> m_ppolicy;
 
     void print_impl();
     template <typename First, typename...Rest>
@@ -75,34 +117,33 @@ public:
 
     Logger()
     {
-        log_line_number = 0;
-        policy = new log_policy;
+        m_log_line_number = 0;
+        m_ppolicy = std::make_unique<log_policy>();
 
-        if (!policy)
+        if (!m_ppolicy)
         {
             throw(std::runtime_error("Logger: unable to create Logger instance"));
         }
-        policy->open_ostream( );
+        m_ppolicy->open_ostream( );
     }
 
     Logger( const std::string& name)
     {
-        log_line_number = 0;
-        policy = new log_policy;
+        m_log_line_number = 0;
+        m_ppolicy = std::make_unique<log_policy>();
 
-        if (!policy)
+        if (!m_ppolicy)
         {
             throw(std::runtime_error("Logger: unable to create Logger instance"));
         }
-        policy->open_ostream( name );
+        m_ppolicy->open_ostream( name );
     }
 
     ~Logger()
     {
-        if (policy)
+        if (m_ppolicy)
         {
-            policy->close_ostream();
-            delete policy;
+            m_ppolicy->close_ostream();
         }
     }
 };
@@ -111,17 +152,17 @@ template< typename log_policy>
     template< severity_type severity, typename...Args >
 void Logger< log_policy >::print( Args...args )
 {
-    std::lock_guard<std::mutex> lock(write_mutex);
+    std::lock_guard<std::mutex> lock(m_write_mutex);
     switch ( severity )
     {
         case severity_type::debug:
-            log_stream<<" <DEBUG>: ";
+            m_log_stream<<" <DEBUG>: ";
             break;
         case severity_type::warning:
-            log_stream<<" <WARNING>: ";
+            m_log_stream<<" <WARNING>: ";
             break;
         case severity_type::error:
-            log_stream<<" <ERROR>: ";
+            m_log_stream<<" <ERROR>: ";
             break;
     }
     print_impl (args...);
@@ -130,15 +171,15 @@ void Logger< log_policy >::print( Args...args )
 template <typename log_policy>
 void Logger< log_policy >::print_impl()
 {
-    policy->write( get_logline_header() + log_stream.str());
-    log_stream.str("");
+    m_ppolicy->write( get_logline_header() + m_log_stream.str());
+    m_log_stream.str("");
 }
 
 template < typename log_policy>
   template<typename First, typename...Rest >
 void Logger< log_policy >::print_impl(First parm1, Rest...parm)
 {
-    log_stream<<parm1;
+    m_log_stream<<parm1;
     print_impl(parm...);
 }
 
@@ -162,7 +203,7 @@ std::string Logger < log_policy >::get_logline_header()
     header.str("");
     header.fill('0');
     header.width(7);
-    header <<log_line_number++<<" < "<<get_time()<< " - ";
+    header <<m_log_line_number++<<" < "<<get_time()<< " - ";
     header.fill('0');
     header.width(20);
     header <<clock()<< " > ~ ";
