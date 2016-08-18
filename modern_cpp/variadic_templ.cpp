@@ -64,8 +64,7 @@ std::ostream& operator<< (std::ostream& os, const tuple<T>& rhs)
 template <typename... rest>
 std::ostream& operator<< (std::ostream& os, const tuple<rest...>& rhs)
 {
-    tuple<rest...>& t = rhs;
-    return os <<t;
+    return os <<rhs;
 
 }
 
