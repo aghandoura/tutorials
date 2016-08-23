@@ -14,9 +14,9 @@ auto adder(T first, Args... args) -> T
 }
 
 //from http://eli.thegreenplace.net/2014/variadic-templates-in-c/
-template<class... Ts> struct tuple{};
+template<typename... Ts> struct tuple{};
 
-template <class T, class... Ts>
+template <typename T, typename... Ts>
 struct tuple<T, Ts...> : tuple<Ts...>
 {
     tuple(T head, Ts... ts) : tuple <Ts...>(ts...), tail(head){}
@@ -25,29 +25,29 @@ struct tuple<T, Ts...> : tuple<Ts...>
 };
 
 
-template <size_t, class> struct elem_type_holder;
+template <size_t, typename> struct elem_type_holder;
 
-template <class T, class... Ts>
+template <typename T, typename... Ts>
 struct elem_type_holder<0, tuple<T, Ts...>>
 {
    using type = T;
 };
 
-template <size_t k, class T, class... Ts>
+template <size_t k, typename T, typename... Ts>
 struct elem_type_holder<k, tuple<T, Ts...>>
 {
     using type = typename elem_type_holder<k-1, tuple<Ts...>>::type;
 };
 
 
-template <size_t k, class... Ts>
+template <size_t k, typename... Ts>
 typename std::enable_if< k == 0, typename elem_type_holder<0, tuple<Ts...>>::type&>::type
 get(tuple<Ts...>& t)
 {
     return t.tail;
 }
 
-template <size_t k,class T,  class... Ts>
+template <size_t k,typename T,  typename... Ts>
 typename std::enable_if< k != 0, typename elem_type_holder<k, tuple<T, Ts...>>::type&>::type
 get(tuple<T, Ts...>& t)
 {
