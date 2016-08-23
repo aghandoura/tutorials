@@ -1,8 +1,8 @@
-TARGET = example
+TARGET = sorting
 GET = merge_sort
 LIBS = -lpthread
 CC = gcc
-CFLAGS = -O3 -Wall
+CFLAGS = -O0 -Wall -g
 
 .PHONY: default all clean
 
