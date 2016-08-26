@@ -1,0 +1,2 @@
+export PKG_CONFIG_PATH=/usr/lib64/pkgconfig/
+gcc hello.c `pkg-config --libs --cflags gegl-0.2` -o hello-world
